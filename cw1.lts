@@ -7,24 +7,48 @@
 const N = 3
 range T = 0..N
 
-LOCK = 					(lock -> unlock -> LOCK).
+
 
 EAST = 					(open -> OPEN_EAST),
-OPEN_EAST = 			(lock -> increment -> unlock -> enter -> OPEN_EAST // Hide lock, increment and unlock
+OPEN_EAST = 			(enter -> OPEN_EAST 
 						|close -> EAST).
 
-WEST =	 				(lock -> decrement -> unlock -> exit -> WEST). // Hide lock, decrement and unlock
+WEST =	 				(exit -> WEST). 
 
 CONTROL =	  			(open -> OPEN[0]),
-OPEN[visitors:T] = 		(when (visitors < N) increment -> OPEN[visitors+1]
-						|when (visitors > 0) decrement -> OPEN[visitors-1]
+OPEN[visitors:T] = 		(when (visitors < N) enter -> OPEN[visitors+1]
+						|when (visitors > 0) exit -> OPEN[visitors-1]
 						|close -> CLOSED[visitors]),
-CLOSED[visitors:T] =	(when (visitors > 0) decrement -> CLOSED[visitors-1]
+CLOSED[visitors:T] =	(when (visitors > 0) exit -> CLOSED[visitors-1]
 						|when (visitors == 0) empty -> CONTROL).
 
-||LOCKED_CONTROL = 		(LOCK || CONTROL).
+
 
 DIRECTOR = 				(open -> DIRECTOR2),
 DIRECTOR2 = 			(close -> empty -> open -> DIRECTOR2).
 
-||MUSEUM = 				(LOCKED_CONTROL || DIRECTOR || EAST || WEST)@{enter, exit, open, close, empty} .
+||MUSEUM = 				(CONTROL || DIRECTOR || EAST || WEST)\{empty}.
+
+
+
+
+TEST = 					(open -> close -> TEST2),
+TEST2 = 				(enter -> error -> ERROR
+						|correct -> TEST).
+||TESTMUSEUM = 			(TEST || MUSEUM).
+
+
+
+
+P = 					STOP + {exit}.
+||P_MUSEUM = 			(P || MUSEUM).
+/*
+Safety trace for P_MUSEUM
+
+Trace to DEADLOCK:
+	open
+	enter
+	close
+
+This is a deadlock because visitors can no longer exit, so the museum can never empty, so it can never reopen.
+*/
